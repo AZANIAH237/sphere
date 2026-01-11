@@ -1,0 +1,12 @@
+{
+  "name": "code-manager-pwa",
+  "version": "1.0.0",
+  "description": "Offline Code Management PWA",
+  "main": "index.html",
+  "scripts": {
+    "start": "echo 'Open index.html in browser'"
+  },
+  "keywords": ["pwa", "offline", "code-manager"],
+  "author": "Your Name",
+  "license": "MIT"
+}
