@@ -4,28 +4,87 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offline Code Manager</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#10B981">
-
+    <meta name="description" content="Offline Code Management App for Wi-Fi portals">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; min-height: 100vh; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        .container { max-width: 600px; margin: auto; padding-bottom: 90px; position: relative; min-height: 100vh; }
-        .tab-button { transition: all 0.2s ease; }
-        .tab-button.active { color: #10B981; border-bottom: 2px solid #10B981; }
-        .fab-menu { transform: scale(0); transform-origin: bottom right; transition: transform 0.2s ease-out; }
-        .fab-menu.open { transform: scale(1); }
-        .modal { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
-        .modal.open { opacity: 1; pointer-events: auto; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding-bottom: 90px; /* Space for nav */
+            position: relative;
+            min-height: 100vh;
+        }
+        .tab-button {
+            transition: all 0.2s ease;
+        }
+        .tab-button.active {
+            color: #10B981;
+            border-bottom: 2px solid #10B981;
+        }
+        /* FAB Animation */
+        .fab-menu {
+            transform: scale(0);
+            transform-origin: bottom right;
+            transition: transform 0.2s ease-out;
+        }
+        .fab-menu.open {
+            transform: scale(1);
+        }
+        /* Modal Transitions */
+        .modal {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .modal.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* Animation for new items */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
     </style>
 </head>
 <body class="text-gray-800">
 
     <div class="container bg-gray-50 flex flex-col">
         
+        <!-- Header & Data Controls -->
         <header class="bg-white p-4 shadow-sm sticky top-0 z-20">
             <div class="flex justify-between items-center mb-4">
                 <h1 class="text-xl font-bold flex items-center text-gray-800">
@@ -33,34 +92,41 @@
                     <span id="header-title">Code Manager</span>
                 </h1>
                 <div class="flex space-x-2">
-                    <button onclick="app.requestNotify()" class="p-2 text-gray-500 hover:text-yellow-600 rounded-full hover:bg-yellow-50" title="Enable Alerts">
-                        <i data-lucide="bell" class="w-5 h-5"></i>
-                    </button>
-                    <button onclick="app.exportData()" class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50" title="Export">
+                    <button onclick="app.exportData()" class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50" title="Export Data">
                         <i data-lucide="download" class="w-5 h-5"></i>
                     </button>
-                    <label class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50 cursor-pointer" title="Import">
+                    <label class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50 cursor-pointer" title="Import Data">
                         <i data-lucide="upload" class="w-5 h-5"></i>
-                        <input type="file" id="import-file" class="hidden" accept=".json,application/json" onchange="app.importData(this)">
+                        <input type="file" id="import-file" class="hidden" accept=".json" onchange="app.importData(this)">
                     </label>
+                    <button onclick="app.requestNotificationPermission()" class="p-2 text-gray-500 hover:text-yellow-600 rounded-full hover:bg-yellow-50" title="Notifications">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                    </button>
                 </div>
             </div>
 
+            <!-- Top Tabs: Unused vs Used -->
             <div class="flex border-b border-gray-200">
-                <button onclick="app.setView('unused')" id="view-unused" class="flex-1 pb-3 text-center font-semibold text-gray-500 border-b-2 border-transparent active tab-button">
+                <button onclick="app.setView('unused')" id="view-unused" class="flex-1 pb-3 text-center font-semibold text-gray-500 border-b-2 border-transparent hover:text-emerald-500 active tab-button">
                     Unused (<span id="count-unused">0</span>)
                 </button>
-                <button onclick="app.setView('used')" id="view-used" class="flex-1 pb-3 text-center font-semibold text-gray-500 border-b-2 border-transparent tab-button">
+                <button onclick="app.setView('used')" id="view-used" class="flex-1 pb-3 text-center font-semibold text-gray-500 border-b-2 border-transparent hover:text-red-500 tab-button">
                     Used (<span id="count-used">0</span>)
                 </button>
             </div>
         </header>
 
+        <!-- Main Content List -->
         <main id="code-list" class="flex-1 p-4 space-y-3 overflow-y-auto">
-            <div class="text-center py-10 text-gray-400"><p>No codes found.</p></div>
+            <!-- Items injected here -->
+            <div class="text-center py-10 text-gray-400">
+                <p>No codes found.</p>
+            </div>
         </main>
 
+        <!-- Floating Action Button (FAB) -->
         <div class="fixed bottom-24 right-4 z-30 flex flex-col items-end">
+            <!-- FAB Menu Options -->
             <div id="fab-menu" class="fab-menu flex flex-col space-y-3 mb-4 mr-1">
                 <button onclick="app.openModal('manual')" class="flex items-center bg-white text-gray-700 px-4 py-2 rounded-full shadow-lg border hover:bg-gray-50">
                     <span class="mr-2 font-medium">Add Manually</span>
@@ -71,22 +137,25 @@
                     <i data-lucide="wand-2" class="w-4 h-4 text-purple-500"></i>
                 </button>
             </div>
+            
+            <!-- Main FAB Trigger -->
             <button onclick="app.toggleFab(event)" class="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 text-4xl pb-1 leading-none">
                 +
             </button>
         </div>
 
+        <!-- Bottom Navigation (Plans) -->
         <nav class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
             <div class="flex justify-around p-2">
-                <button onclick="app.setPlan('day1')" id="nav-day1" class="flex-1 p-2 flex flex-col items-center text-gray-500">
+                <button onclick="app.setPlan('day1')" id="nav-day1" class="flex-1 p-2 flex flex-col items-center text-gray-500 hover:text-emerald-500 transition-colors">
                     <i data-lucide="sun" class="w-5 h-5 mb-1"></i>
                     <span class="text-xs font-medium">1 Day</span>
                 </button>
-                <button onclick="app.setPlan('month1')" id="nav-month1" class="flex-1 p-2 flex flex-col items-center text-gray-500">
+                <button onclick="app.setPlan('month1')" id="nav-month1" class="flex-1 p-2 flex flex-col items-center text-gray-500 hover:text-emerald-500 transition-colors">
                     <i data-lucide="calendar" class="w-5 h-5 mb-1"></i>
                     <span class="text-xs font-medium">30 Days</span>
                 </button>
-                <button onclick="app.setPlan('family')" id="nav-family" class="flex-1 p-2 flex flex-col items-center text-gray-500">
+                <button onclick="app.setPlan('family')" id="nav-family" class="flex-1 p-2 flex flex-col items-center text-gray-500 hover:text-emerald-500 transition-colors">
                     <i data-lucide="users" class="w-5 h-5 mb-1"></i>
                     <span class="text-xs font-medium">Family</span>
                 </button>
@@ -95,24 +164,39 @@
 
     </div>
 
+    <!-- MODAL: Auto Generate -->
     <div id="modal-auto" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs p-6">
-            <h3 class="text-lg font-bold mb-4 flex items-center"><i data-lucide="wand-2" class="w-5 h-5 mr-2 text-purple-500"></i> Auto Generate</h3>
-            <p class="text-sm text-gray-600 mb-4">Generate for <span id="auto-plan-name" class="font-bold"></span>?</p>
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+                <i data-lucide="wand-2" class="w-5 h-5 mr-2 text-purple-500"></i>
+                Auto Generate
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">How many codes to generate for <span id="auto-plan-name" class="font-bold"></span>?</p>
             <input type="number" id="auto-count" value="10" min="1" max="50" class="w-full border p-2 rounded mb-1 focus:ring-2 focus:ring-emerald-500 outline-none">
-            <div class="flex justify-end space-x-2 mt-4">
+            <p class="text-xs text-gray-400 mb-6">Max 50 at a time.</p>
+            <div class="flex justify-end space-x-2">
                 <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
                 <button onclick="app.generateAuto()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Generate</button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL: Manual Add -->
     <div id="modal-manual" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
-            <h3 class="text-lg font-bold mb-4 flex items-center"><i data-lucide="edit-3" class="w-5 h-5 mr-2 text-blue-500"></i> Add Manually</h3>
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+                <i data-lucide="edit-3" class="w-5 h-5 mr-2 text-blue-500"></i>
+                Add Manually
+            </h3>
             <div class="space-y-4 mb-6">
-                <input type="text" id="manual-user" maxlength="5" class="w-full border p-2 rounded uppercase" placeholder="User ID (5 Letters)">
-                <input type="text" id="manual-code" maxlength="4" class="w-full border p-2 rounded" placeholder="Code (4 Digits)">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">User ID (5 Letters)</label>
+                    <input type="text" id="manual-user" maxlength="5" class="w-full border p-2 rounded uppercase focus:ring-2 focus:ring-blue-500 outline-none" placeholder="ABCDE">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Activation Code (4 Digits)</label>
+                    <input type="text" id="manual-code" maxlength="4" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="1234">
+                </div>
             </div>
             <div class="flex justify-end space-x-2">
                 <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
@@ -121,93 +205,254 @@
         </div>
     </div>
 
+    <!-- MODAL: Mark Used (Short Name Input) -->
     <div id="modal-mark-used" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
-            <h3 class="text-lg font-bold mb-2">Activate Code</h3>
-            <p class="text-sm text-gray-500 mb-4">Who is this code for?</p>
-            <input type="text" id="used-shortname" class="w-full border p-2 rounded mb-6 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Client Name (e.g., John)">
-            <input type="hidden" id="pending-mark-id">
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+                <i data-lucide="user-check" class="w-5 h-5 mr-2 text-emerald-500"></i>
+                Mark as Used
+            </h3>
+            <div class="space-y-4 mb-6">
+                <div id="mark-used-code-info" class="p-3 bg-gray-50 rounded-lg mb-4">
+                    <!-- Code info will be injected here -->
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Short Name (Optional)</label>
+                    <input type="text" id="used-short-name" maxlength="20" class="w-full border p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="e.g., John's Phone">
+                    <p class="text-xs text-gray-400 mt-1">Enter a short name to identify who used this code</p>
+                </div>
+            </div>
             <div class="flex justify-end space-x-2">
-                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 rounded hover:bg-gray-100">Cancel</button>
-                <button onclick="app.confirmMarkUsed()" class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">Activate</button>
+                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="app.confirmMarkUsed()" class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">Mark Used</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-details" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 relative">
-            <button onclick="app.closeModals()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-            <h3 class="text-xl font-bold mb-1 text-gray-800" id="detail-shortname">Client Name</h3>
-            <p class="text-sm text-emerald-600 font-semibold mb-6 uppercase" id="detail-plan">Plan Name</p>
+    <!-- MODAL: Used Code Details -->
+    <div id="modal-used-details" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 max-h-[80vh] overflow-y-auto">
+            <h3 class="text-lg font-bold mb-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <i data-lucide="info" class="w-5 h-5 mr-2 text-blue-500"></i>
+                    Code Details
+                </div>
+                <button onclick="app.closeModals()" class="p-1 hover:bg-gray-100 rounded-full">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </h3>
             
-            <div class="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <div class="flex justify-between border-b pb-2">
-                    <span class="text-gray-500 text-sm">Username</span>
-                    <span class="font-mono font-bold text-lg select-all" id="detail-user">---</span>
-                </div>
-                <div class="flex justify-between border-b pb-2">
-                    <span class="text-gray-500 text-sm">Code</span>
-                    <span class="font-mono font-bold text-lg select-all" id="detail-code">---</span>
-                </div>
-                <div class="pt-1">
-                    <p class="text-xs text-gray-400">Activated</p>
-                    <p class="text-sm font-medium text-gray-700" id="detail-start">---</p>
-                </div>
-                <div class="pt-1">
-                    <p class="text-xs text-gray-400">Expires</p>
-                    <p class="text-sm font-bold text-red-600" id="detail-end">---</p>
-                </div>
+            <div id="used-details-content" class="space-y-4">
+                <!-- Details will be injected here -->
+            </div>
+            
+            <div class="mt-6 pt-4 border-t">
+                <button onclick="app.copyCodeDetails()" class="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 flex items-center justify-center">
+                    <i data-lucide="copy" class="w-4 h-4 mr-2"></i>
+                    Copy All Details
+                </button>
             </div>
         </div>
     </div>
 
-    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg text-sm transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none z-50">Action Completed</div>
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg text-sm transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none z-50">
+        Action Completed
+    </div>
 
     <script>
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('SW Registered'))
-                .catch(err => console.log('SW Fail', err));
-        }
-
+        // --- APP LOGIC ---
         class App {
             constructor() {
-                this.state = { currentPlan: 'day1', currentView: 'unused', codes: [] };
-                this.plans = { day1: "1 Day Unlimited", month1: "30 Days Unlimited", family: "30 Days Family" };
-                // Duration in hours
-                this.durations = { day1: 24, month1: 720, family: 720 }; 
+                this.state = {
+                    currentPlan: 'day1',
+                    currentView: 'unused', // 'unused' or 'used'
+                    codes: [],
+                    markUsedCandidate: null // Stores code to mark used
+                };
+                this.plans = {
+                    day1: { name: "1 Day Unlimited", duration: 1 },
+                    month1: { name: "30 Days Unlimited", duration: 30 },
+                    family: { name: "30 Days Family", duration: 30 }
+                };
+                
                 this.init();
             }
 
             init() {
                 this.loadData();
                 this.render();
+                this.initServiceWorker();
+                this.scheduleExpirationCheck();
                 lucide.createIcons();
-                // Check expiry every minute
-                setInterval(() => this.checkExpiry(), 60000);
+                
+                // Close modals on escape key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') this.closeModals();
+                });
             }
+
+            // --- SERVICE WORKER & NOTIFICATIONS ---
+            
+            async initServiceWorker() {
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registration = await navigator.serviceWorker.register('./service-worker.js');
+                        console.log('Service Worker registered:', registration);
+                        
+                        // Request notification permission
+                        if ('Notification' in window && Notification.permission === 'default') {
+                            // We'll ask when user clicks the bell icon
+                        }
+                    } catch (error) {
+                        console.error('Service Worker registration failed:', error);
+                    }
+                }
+            }
+
+            async requestNotificationPermission() {
+                if (!('Notification' in window)) {
+                    this.showToast("Notifications not supported in this browser");
+                    return;
+                }
+                
+                if (Notification.permission === 'granted') {
+                    this.showToast("Notifications already enabled");
+                    return;
+                }
+                
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    this.showToast("Notifications enabled!");
+                    
+                    // Register for push notifications
+                    if ('PushManager' in window) {
+                        try {
+                            const registration = await navigator.serviceWorker.ready;
+                            const subscription = await registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: this.urlBase64ToUint8Array('BEpZ1xZt4tLcVXpGXe6yTkHj8dNmQsPw3rA7sF0uJi9vD5lW2oC4zMn6oY1aB3gS8f7hRqExVbTdNwKpU0Lm')
+                            });
+                            console.log('Push subscription:', subscription);
+                        } catch (error) {
+                            console.error('Push subscription failed:', error);
+                        }
+                    }
+                } else {
+                    this.showToast("Notifications blocked");
+                }
+            }
+
+            urlBase64ToUint8Array(base64String) {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding)
+                    .replace(/\-/g, '+')
+                    .replace(/_/g, '/');
+                
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            }
+
+            // --- EXPIRATION TRACKING & NOTIFICATIONS ---
+            
+            scheduleExpirationCheck() {
+                // Check for expired codes every hour
+                setInterval(() => this.checkExpiredCodes(), 60 * 60 * 1000);
+                
+                // Also check immediately
+                setTimeout(() => this.checkExpiredCodes(), 5000);
+            }
+
+            checkExpiredCodes() {
+                const now = new Date();
+                const expiredCodes = this.state.codes.filter(code => {
+                    if (code.status !== 'used' || !code.usedAt) return false;
+                    
+                    const usedDate = new Date(code.usedAt);
+                    const planDuration = this.plans[code.plan]?.duration || 1;
+                    const expiryDate = new Date(usedDate);
+                    expiryDate.setDate(expiryDate.getDate() + planDuration);
+                    
+                    return now > expiryDate && !code.notificationSent;
+                });
+
+                expiredCodes.forEach(code => {
+                    this.sendExpiryNotification(code);
+                    code.notificationSent = true;
+                });
+
+                if (expiredCodes.length > 0) {
+                    this.saveData();
+                }
+            }
+
+            sendExpiryNotification(code) {
+                if (!('Notification' in window) || Notification.permission !== 'granted') {
+                    return;
+                }
+
+                const planName = this.plans[code.plan]?.name || code.plan;
+                const usedDate = new Date(code.usedAt);
+                const planDuration = this.plans[code.plan]?.duration || 1;
+                const expiryDate = new Date(usedDate);
+                expiryDate.setDate(expiryDate.getDate() + planDuration);
+
+                const notification = new Notification('Code Expired!', {
+                    body: `Code ${code.username}/${code.code} for ${planName} has expired`,
+                    icon: './icons/icon-192x192.png',
+                    badge: './icons/icon-72x72.png',
+                    tag: 'code-expiry'
+                });
+
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+            }
+
+            getExpiryDate(code) {
+                if (!code.usedAt) return null;
+                
+                const usedDate = new Date(code.usedAt);
+                const planDuration = this.plans[code.plan]?.duration || 1;
+                const expiryDate = new Date(usedDate);
+                expiryDate.setDate(expiryDate.getDate() + planDuration);
+                return expiryDate;
+            }
+
+            isExpired(code) {
+                const expiryDate = this.getExpiryDate(code);
+                if (!expiryDate) return false;
+                
+                return new Date() > expiryDate;
+            }
+
+            // --- DATA MANAGEMENT ---
 
             loadData() {
                 const stored = localStorage.getItem('captive_portal_data');
                 if (stored) {
                     try {
-                        let data = JSON.parse(stored);
-                        // *** CRITICAL FIX: Data Migration ***
-                        // This ensures old codes from the previous version don't break the app
-                        this.state.codes = data.map(c => ({
-                            ...c,
-                            // If plan is missing, default to day1
-                            plan: c.plan || 'day1',
-                            // If ID is missing, create one
-                            id: c.id || crypto.randomUUID(),
-                            // If status missing, default unused
-                            status: c.status || 'unused',
-                            // If created date missing
-                            createdAt: c.createdAt || new Date().toISOString()
+                        const parsed = JSON.parse(stored);
+                        // Ensure all codes have required fields
+                        this.state.codes = parsed.map(code => ({
+                            id: code.id || crypto.randomUUID(),
+                            username: code.username || '',
+                            code: code.code || '',
+                            plan: code.plan || 'day1',
+                            status: code.status || 'unused',
+                            createdAt: code.createdAt || new Date().toISOString(),
+                            usedAt: code.usedAt || null,
+                            shortName: code.shortName || '',
+                            notificationSent: code.notificationSent || false
                         }));
                     } catch (e) {
-                        console.error("Data error", e);
+                        console.error("Error parsing data:", e);
                         this.state.codes = [];
                     }
                 }
@@ -216,258 +461,477 @@
             saveData() {
                 localStorage.setItem('captive_portal_data', JSON.stringify(this.state.codes));
                 this.render();
+                this.checkExpiredCodes();
             }
 
-            // --- NOTIFICATIONS ---
-            requestNotify() {
-                if (!("Notification" in window)) return alert("Not supported");
-                Notification.requestPermission().then(p => {
-                    if (p === "granted") this.showToast("Notifications Enabled");
-                });
-            }
-
-            checkExpiry() {
-                if (Notification.permission !== "granted") return;
-                const now = new Date();
-                this.state.codes.forEach(c => {
-                    if (c.status === 'used' && c.expiresAt && !c.notified) {
-                        const expiry = new Date(c.expiresAt);
-                        // Trigger if expired within last 2 minutes (to avoid spamming old ones)
-                        if (now >= expiry && (now - expiry) < 120000) {
-                            new Notification("Plan Expired", {
-                                body: `${c.shortName || 'Client'} (${c.username}) - Time is up!`
-                            });
-                            c.notified = true; // Don't notify again
-                            this.saveData();
-                        }
-                    }
-                });
-            }
-
-            // --- IMPORT/EXPORT ---
             exportData() {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.codes, null, 2));
-                const link = document.createElement('a');
-                link.href = dataStr;
-                link.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                this.showToast("Exported");
+                const data = {
+                    version: '1.0',
+                    exportDate: new Date().toISOString(),
+                    codes: this.state.codes
+                };
+                
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `code_manager_backup_${new Date().toISOString().slice(0,10)}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                this.showToast("Data Exported");
             }
 
             importData(input) {
                 const file = input.files[0];
                 if (!file) return;
+                
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
                         const imported = JSON.parse(e.target.result);
+                        
+                        // Handle both old format (array) and new format (object with codes array)
+                        let codesToImport = [];
                         if (Array.isArray(imported)) {
-                            if(confirm("Overwrite current data with this file?")) {
-                                this.state.codes = imported;
-                                // Run migration on imported data too
-                                this.loadData(); // Re-runs the migration map
-                                this.saveData();
-                                this.showToast("Imported Successfully");
-                            }
-                        } else { alert("Invalid file."); }
-                    } catch (err) { alert("Error parsing JSON"); }
+                            codesToImport = imported;
+                        } else if (imported.codes && Array.isArray(imported.codes)) {
+                            codesToImport = imported.codes;
+                        } else {
+                            this.showToast("Invalid file format");
+                            return;
+                        }
+                        
+                        // Validate codes
+                        const validCodes = codesToImport.filter(code => 
+                            code.username && code.code && code.plan
+                        );
+                        
+                        if (validCodes.length === 0) {
+                            this.showToast("No valid codes found in file");
+                            return;
+                        }
+                        
+                        if (confirm(`Found ${validCodes.length} valid codes. Import and merge with existing data?`)) {
+                            // Merge with existing, avoid duplicates by ID
+                            const existingIds = new Set(this.state.codes.map(c => c.id));
+                            const newCodes = validCodes.filter(code => !existingIds.has(code.id));
+                            
+                            this.state.codes = [...this.state.codes, ...newCodes];
+                            this.saveData();
+                            this.showToast(`Imported ${newCodes.length} codes`);
+                        }
+                        
+                    } catch (err) {
+                        console.error("Import error:", err);
+                        this.showToast("Error: Invalid JSON file");
+                    }
+                };
+                reader.onerror = () => {
+                    this.showToast("Error reading file");
                 };
                 reader.readAsText(file);
-                input.value = '';
+                input.value = ''; // Reset input
             }
 
-            // --- LOGIC ---
+            // --- GENERATORS ---
+
+            generateID() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                let result = '';
+                for (let i = 0; i < 5; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            }
+
+            generateCode() {
+                return Math.floor(1000 + Math.random() * 9000).toString();
+            }
+
+            // --- ACTIONS ---
+
             generateAuto() {
-                const count = Math.min(parseInt(document.getElementById('auto-count').value) || 1, 50);
+                const countInput = document.getElementById('auto-count');
+                let count = parseInt(countInput.value) || 1;
+                if (count > 50) count = 50;
+
                 for (let i = 0; i < count; i++) {
-                    this.state.codes.push({
+                    const newEntry = {
                         id: crypto.randomUUID(),
-                        username: this.generateStr(5),
-                        code: Math.floor(1000 + Math.random() * 9000).toString(),
+                        username: this.generateID(),
+                        code: this.generateCode(),
                         plan: this.state.currentPlan,
                         status: 'unused',
-                        createdAt: new Date().toISOString()
-                    });
+                        createdAt: new Date().toISOString(),
+                        usedAt: null,
+                        shortName: '',
+                        notificationSent: false
+                    };
+                    this.state.codes.push(newEntry);
                 }
+
                 this.saveData();
                 this.closeModals();
-                this.showToast(`Generated ${count}`);
-            }
-
-            generateStr(len) {
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-                let res = '';
-                for(let i=0; i<len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
-                return res;
+                this.showToast(`Generated ${count} codes`);
             }
 
             addManual() {
-                const u = document.getElementById('manual-user').value.toUpperCase().trim();
-                const c = document.getElementById('manual-code').value.trim();
-                if (!u || !c) return alert("Fill all fields");
-                this.state.codes.push({
+                const userRaw = document.getElementById('manual-user').value.toUpperCase().trim();
+                const codeRaw = document.getElementById('manual-code').value.trim();
+
+                if (!userRaw || userRaw.length !== 5 || !/^[A-Z]{5}$/.test(userRaw)) {
+                    this.showToast("User ID must be 5 capital letters");
+                    return;
+                }
+
+                if (!codeRaw || codeRaw.length !== 4 || !/^\d{4}$/.test(codeRaw)) {
+                    this.showToast("Code must be 4 digits");
+                    return;
+                }
+
+                const newEntry = {
                     id: crypto.randomUUID(),
-                    username: u, code: c,
+                    username: userRaw,
+                    code: codeRaw,
                     plan: this.state.currentPlan,
                     status: 'unused',
-                    createdAt: new Date().toISOString()
-                });
+                    createdAt: new Date().toISOString(),
+                    usedAt: null,
+                    shortName: '',
+                    notificationSent: false
+                };
+
+                this.state.codes.push(newEntry);
                 this.saveData();
                 this.closeModals();
-                this.showToast("Added");
-                document.getElementById('manual-user').value='';
-                document.getElementById('manual-code').value='';
+                this.showToast("Code Added");
+                
+                // Reset fields
+                document.getElementById('manual-user').value = '';
+                document.getElementById('manual-code').value = '';
             }
 
-            // --- NEW MARK USED LOGIC ---
-            promptMarkUsed(id) {
-                document.getElementById('pending-mark-id').value = id;
-                document.getElementById('used-shortname').value = ''; // Reset input
-                this.openModal('mark-used');
+            openMarkUsedModal(id) {
+                const code = this.state.codes.find(c => c.id === id);
+                if (!code) return;
+                
+                this.state.markUsedCandidate = id;
+                
+                // Update modal content
+                document.getElementById('mark-used-code-info').innerHTML = `
+                    <div class="text-center">
+                        <div class="font-mono text-lg font-bold mb-1">${code.username} / ${code.code}</div>
+                        <div class="text-sm text-gray-600">${this.plans[code.plan].name}</div>
+                    </div>
+                `;
+                
+                // Clear input
+                document.getElementById('used-short-name').value = '';
+                
+                // Open modal
+                this.closeModals();
+                document.getElementById('modal-mark-used').classList.add('open');
             }
 
             confirmMarkUsed() {
-                const id = document.getElementById('pending-mark-id').value;
-                const shortName = document.getElementById('used-shortname').value.trim() || 'Client';
+                const id = this.state.markUsedCandidate;
+                const shortName = document.getElementById('used-short-name').value.trim();
+                
                 const idx = this.state.codes.findIndex(c => c.id === id);
-
                 if (idx > -1) {
-                    const now = new Date();
-                    const hours = this.durations[this.state.codes[idx].plan] || 24;
-                    const expiry = new Date(now.getTime() + (hours * 60 * 60 * 1000));
-
                     this.state.codes[idx].status = 'used';
+                    this.state.codes[idx].usedAt = new Date().toISOString();
                     this.state.codes[idx].shortName = shortName;
-                    this.state.codes[idx].usedAt = now.toISOString();
-                    this.state.codes[idx].expiresAt = expiry.toISOString();
-                    this.state.codes[idx].notified = false;
-
                     this.saveData();
-                    this.closeModals();
-                    this.showToast("Activated");
+                    this.showToast("Marked as Used");
+                    this.state.markUsedCandidate = null;
                 }
+                
+                this.closeModals();
             }
 
-            deleteCode(id, e) {
-                if(e) e.stopPropagation();
-                if(confirm("Delete permanently?")) {
+            showUsedDetails(id) {
+                const code = this.state.codes.find(c => c.id === id);
+                if (!code) return;
+                
+                const usedDate = new Date(code.usedAt);
+                const expiryDate = this.getExpiryDate(code);
+                const isExpired = this.isExpired(code);
+                
+                const detailsContent = document.getElementById('used-details-content');
+                detailsContent.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="p-3 bg-gray-50 rounded">
+                                <div class="text-xs text-gray-500">Username</div>
+                                <div class="font-mono font-bold text-lg">${code.username}</div>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded">
+                                <div class="text-xs text-gray-500">Code</div>
+                                <div class="font-mono font-bold text-lg">${code.code}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 bg-gray-50 rounded">
+                            <div class="text-xs text-gray-500">Plan</div>
+                            <div class="font-semibold">${this.plans[code.plan].name}</div>
+                        </div>
+                        
+                        ${code.shortName ? `
+                        <div class="p-3 bg-gray-50 rounded">
+                            <div class="text-xs text-gray-500">Short Name</div>
+                            <div class="font-semibold">${code.shortName}</div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="p-3 ${isExpired ? 'bg-red-50' : 'bg-blue-50'} rounded">
+                                <div class="text-xs ${isExpired ? 'text-red-500' : 'text-blue-500'}">Start Date & Time</div>
+                                <div class="font-semibold">${usedDate.toLocaleString()}</div>
+                            </div>
+                            <div class="p-3 ${isExpired ? 'bg-red-50' : 'bg-green-50'} rounded">
+                                <div class="text-xs ${isExpired ? 'text-red-500' : 'text-green-500'}">Expiry Date & Time</div>
+                                <div class="font-semibold">${expiryDate ? expiryDate.toLocaleString() : 'N/A'}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 ${isExpired ? 'bg-red-100 border border-red-200' : 'bg-green-100 border border-green-200'} rounded">
+                            <div class="flex items-center">
+                                <i data-lucide="${isExpired ? 'alert-circle' : 'check-circle'}" class="w-5 h-5 mr-2 ${isExpired ? 'text-red-500' : 'text-green-500'}"></i>
+                                <span class="font-semibold ${isExpired ? 'text-red-700' : 'text-green-700'}">
+                                    ${isExpired ? 'EXPIRED' : 'ACTIVE'}
+                                </span>
+                            </div>
+                            ${isExpired ? `
+                            <div class="text-sm text-red-600 mt-1">This code expired ${this.timeSince(expiryDate)} ago</div>
+                            ` : `
+                            <div class="text-sm text-green-600 mt-1">Expires in ${this.timeUntil(expiryDate)}</div>
+                            `}
+                        </div>
+                    </div>
+                `;
+                
+                this.closeModals();
+                document.getElementById('modal-used-details').classList.add('open');
+                lucide.createIcons();
+            }
+
+            timeSince(date) {
+                if (!date) return 'N/A';
+                
+                const seconds = Math.floor((new Date() - date) / 1000);
+                let interval = seconds / 31536000;
+                
+                if (interval > 1) return Math.floor(interval) + " years";
+                interval = seconds / 2592000;
+                if (interval > 1) return Math.floor(interval) + " months";
+                interval = seconds / 86400;
+                if (interval > 1) return Math.floor(interval) + " days";
+                interval = seconds / 3600;
+                if (interval > 1) return Math.floor(interval) + " hours";
+                interval = seconds / 60;
+                if (interval > 1) return Math.floor(interval) + " minutes";
+                return Math.floor(seconds) + " seconds";
+            }
+
+            timeUntil(date) {
+                if (!date) return 'N/A';
+                
+                const seconds = Math.floor((date - new Date()) / 1000);
+                if (seconds < 0) return '0 seconds';
+                
+                let interval = seconds / 86400;
+                if (interval > 1) return Math.floor(interval) + " days";
+                interval = seconds / 3600;
+                if (interval > 1) return Math.floor(interval) + " hours";
+                interval = seconds / 60;
+                if (interval > 1) return Math.floor(interval) + " minutes";
+                return Math.floor(seconds) + " seconds";
+            }
+
+            copyCodeDetails() {
+                const content = document.getElementById('used-details-content');
+                const text = content.innerText;
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    this.showToast("Details copied to clipboard");
+                }).catch(err => {
+                    console.error('Copy failed:', err);
+                    this.showToast("Copy failed");
+                });
+            }
+
+            deleteCode(id) {
+                if (confirm("Delete this code permanently?")) {
                     this.state.codes = this.state.codes.filter(c => c.id !== id);
                     this.saveData();
-                    this.showToast("Deleted");
+                    this.showToast("Code Deleted");
                 }
             }
 
-            showDetails(id) {
-                const c = this.state.codes.find(x => x.id === id);
-                if(!c) return;
-                document.getElementById('detail-shortname').textContent = c.shortName || 'Unknown';
-                document.getElementById('detail-plan').textContent = this.plans[c.plan] || c.plan;
-                document.getElementById('detail-user').textContent = c.username;
-                document.getElementById('detail-code').textContent = c.code;
-                document.getElementById('detail-start').textContent = c.usedAt ? new Date(c.usedAt).toLocaleString() : '-';
-                document.getElementById('detail-end').textContent = c.expiresAt ? new Date(c.expiresAt).toLocaleString() : '-';
-                this.openModal('details');
+            // --- UI RENDERERS ---
+
+            setPlan(planId) {
+                this.state.currentPlan = planId;
+                this.render();
             }
 
-            // --- UI HELPERS ---
-            setPlan(p) { this.state.currentPlan = p; this.render(); }
-            setView(v) { this.state.currentView = v; this.render(); }
-            
-            toggleFab(e) { 
-                if(e) e.stopPropagation(); 
-                document.getElementById('fab-menu').classList.toggle('open'); 
+            setView(viewType) {
+                this.state.currentView = viewType;
+                this.render();
             }
-            
-            openModal(t) {
-                this.closeModals();
-                if(t === 'auto') document.getElementById('auto-plan-name').textContent = this.plans[this.state.currentPlan];
-                document.getElementById('modal-'+t).classList.add('open');
+
+            toggleFab(e) {
+                if (e) e.stopPropagation();
+                const menu = document.getElementById('fab-menu');
+                menu.classList.toggle('open');
             }
-            
-            closeModals() { 
-                document.querySelectorAll('.modal').forEach(m => m.classList.remove('open')); 
+
+            openModal(type) {
                 document.getElementById('fab-menu').classList.remove('open');
+                if (type === 'auto') {
+                    document.getElementById('auto-plan-name').textContent = this.plans[this.state.currentPlan].name;
+                    document.getElementById('modal-auto').classList.add('open');
+                } else {
+                    document.getElementById('modal-manual').classList.add('open');
+                }
             }
-            
+
+            closeModals() {
+                document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
+            }
+
             showToast(msg) {
                 const t = document.getElementById('toast');
                 t.textContent = msg;
                 t.classList.remove('opacity-0', 'translate-y-[-20px]');
-                setTimeout(() => t.classList.add('opacity-0', 'translate-y-[-20px]'), 2000);
+                setTimeout(() => {
+                    t.classList.add('opacity-0', 'translate-y-[-20px]');
+                }, 2000);
             }
 
             render() {
-                // Nav Styles
-                ['day1','month1','family'].forEach(p => {
-                    const btn = document.getElementById('nav-'+p);
-                    if(this.state.currentPlan === p) {
-                        btn.classList.add('text-emerald-500'); btn.classList.remove('text-gray-500');
+                // Update Navigation State
+                document.querySelectorAll('nav button').forEach(btn => {
+                    if (btn.id === `nav-${this.state.currentPlan}`) {
+                        btn.classList.add('text-emerald-500');
+                        btn.classList.remove('text-gray-500');
                     } else {
-                        btn.classList.add('text-gray-500'); btn.classList.remove('text-emerald-500');
+                        btn.classList.add('text-gray-500');
+                        btn.classList.remove('text-emerald-500');
                     }
                 });
 
-                // Tab Styles
-                const vUnused = document.getElementById('view-unused');
-                const vUsed = document.getElementById('view-used');
+                // Update Top Tabs State
+                const unusedBtn = document.getElementById('view-unused');
+                const usedBtn = document.getElementById('view-used');
                 if (this.state.currentView === 'unused') {
-                    vUnused.classList.add('active', 'border-emerald-500'); vUnused.classList.remove('border-transparent');
-                    vUsed.classList.remove('active', 'border-emerald-500'); vUsed.classList.add('border-transparent');
+                    unusedBtn.classList.add('active', 'text-emerald-500', 'border-emerald-500');
+                    usedBtn.classList.remove('active', 'text-red-500', 'border-red-500');
                 } else {
-                    vUsed.classList.add('active', 'border-emerald-500'); vUsed.classList.remove('border-transparent');
-                    vUnused.classList.remove('active', 'border-emerald-500'); vUnused.classList.add('border-transparent');
+                    usedBtn.classList.add('active', 'text-red-500', 'border-red-500');
+                    unusedBtn.classList.remove('active', 'text-emerald-500', 'border-emerald-500');
                 }
 
-                // Filter
-                const filtered = this.state.codes.filter(c => c.plan === this.state.currentPlan);
-                const unused = filtered.filter(c => c.status === 'unused');
-                const used = filtered.filter(c => c.status === 'used');
+                // Filter Data
+                const planCodes = this.state.codes.filter(c => c.plan === this.state.currentPlan);
+                const unusedCodes = planCodes.filter(c => c.status === 'unused');
+                const usedCodes = planCodes.filter(c => c.status === 'used');
 
-                document.getElementById('count-unused').textContent = unused.length;
-                document.getElementById('count-used').textContent = used.length;
+                // Update Counts
+                document.getElementById('count-unused').textContent = unusedCodes.length;
+                document.getElementById('count-used').textContent = usedCodes.length;
 
-                const list = document.getElementById('code-list');
-                const data = this.state.currentView === 'unused' ? unused : used;
+                // Render List
+                const listEl = document.getElementById('code-list');
+                const codesToShow = this.state.currentView === 'unused' ? unusedCodes : usedCodes;
 
-                if (data.length === 0) {
-                    list.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-gray-400"><i data-lucide="inbox" class="w-12 h-12 mb-2 opacity-50"></i><p>No codes found</p></div>`;
+                if (codesToShow.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i data-lucide="${this.state.currentView === 'unused' ? 'inbox' : 'history'}" class="w-12 h-12 mb-2 opacity-50"></i>
+                            <p>No ${this.state.currentView} codes for ${this.plans[this.state.currentPlan].name}</p>
+                        </div>
+                    `;
                 } else {
-                    list.innerHTML = data.map(c => {
-                        const isUsed = c.status === 'used';
-                        // Clicking used item opens details
-                        const clickAction = isUsed ? `app.showDetails('${c.id}')` : '';
+                    listEl.innerHTML = codesToShow.map(code => {
+                        const isUsed = code.status === 'used';
+                        const isExpired = isUsed && this.isExpired(code);
                         
-                        return `
-                        <div onclick="${clickAction}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center ${isUsed?'cursor-pointer hover:bg-gray-50':''}">
-                            <div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-mono text-lg font-bold text-gray-800">${c.username}</span>
-                                    ${c.shortName ? `<span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">${c.shortName}</span>` : ''}
+                        if (isUsed) {
+                            // Used code: show details button
+                            const usedDate = new Date(code.usedAt);
+                            const expiryDate = this.getExpiryDate(code);
+                            
+                            return `
+                            <div onclick="app.showUsedDetails('${code.id}')" class="bg-white p-4 rounded-xl shadow-sm border ${isExpired ? 'border-red-100' : 'border-gray-100'} flex justify-between items-center animate-fade-in cursor-pointer hover:bg-gray-50 active:bg-gray-100">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-1">
+                                        <span class="font-mono text-lg font-bold text-gray-800 tracking-wide select-all">${code.username}</span>
+                                        <span class="text-gray-300">|</span>
+                                        <span class="font-mono text-lg text-gray-600 select-all">${code.code}</span>
+                                        ${isExpired ? `<span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded">EXPIRED</span>` : ''}
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        ${code.shortName ? `<span class="font-medium">${code.shortName}</span> • ` : ''}
+                                        Used: ${usedDate.toLocaleString()}
+                                    </div>
+                                    <div class="text-xs ${isExpired ? 'text-red-500' : 'text-green-500'} mt-1">
+                                        ${isExpired ? 'Expired' : 'Expires'}: ${expiryDate ? expiryDate.toLocaleString() : 'N/A'}
+                                    </div>
                                 </div>
-                                <div class="text-xs text-gray-400 mt-1">
-                                    ${isUsed ? 'Expires: ' + new Date(c.expiresAt).toLocaleString() : c.code}
+                                <div class="pl-4">
+                                    <button onclick="event.stopPropagation(); app.deleteCode('${code.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-full">
+                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="pl-4">
-                                ${isUsed 
-                                    ? `<button onclick="app.deleteCode('${c.id}', event)" class="p-2 text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-5 h-5"></i></button>`
-                                    : `<button onclick="app.promptMarkUsed('${c.id}')" class="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-lg">Mark Used</button>`
-                                }
+                            `;
+                        } else {
+                            // Unused code: show mark used button
+                            return `
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center animate-fade-in">
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-mono text-lg font-bold text-gray-800 tracking-wide select-all">${code.username}</span>
+                                        <span class="text-gray-300">|</span>
+                                        <span class="font-mono text-lg text-gray-600 select-all">${code.code}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        Created: ${new Date(code.createdAt).toLocaleDateString()}
+                                    </div>
+                                </div>
+                                <div class="pl-4">
+                                    <button onclick="app.openMarkUsedModal('${code.id}')" class="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-lg hover:bg-emerald-200">
+                                        Mark Used
+                                    </button>
+                                </div>
                             </div>
-                        </div>`;
+                            `;
+                        }
                     }).join('');
                 }
+                
                 lucide.createIcons();
             }
         }
+
+        // Initialize App Globally
         window.app = new App();
-        
-        // Close FAB on outside click
+
+        // Close FAB when clicking outside
         document.addEventListener('click', (e) => {
-            const fab = document.querySelector('.fixed.bottom-24');
-            if (fab && !fab.contains(e.target)) document.getElementById('fab-menu').classList.remove('open');
+            const fabContainer = document.querySelector('.fixed.bottom-24');
+            if (fabContainer && !fabContainer.contains(e.target)) {
+                document.getElementById('fab-menu').classList.remove('open');
+            }
+        });
+
+        // Register service worker on load
+        window.addEventListener('load', () => {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./service-worker.js');
+            }
         });
     </script>
 </body>
