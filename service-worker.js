@@ -5,12 +5,31 @@ const urlsToCache = [
   './manifest.json'
 ];
 
+// URLs of online icons to cache
+const onlineIcons = [
+  'https://img.icons8.com/color/96/000000/wifi-logo.png',
+  'https://img.icons8.com/color/144/000000/wifi-logo.png',
+  'https://img.icons8.com/color/192/000000/wifi-logo.png',
+  'https://img.icons8.com/color/512/000000/wifi-logo.png'
+];
+
 // Install service worker and cache files
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        return cache.addAll(urlsToCache);
+        // Cache local files
+        return cache.addAll(urlsToCache)
+          .then(() => {
+            // Cache online icons
+            return Promise.all(
+              onlineIcons.map(iconUrl => 
+                fetch(iconUrl)
+                  .then(response => cache.put(iconUrl, response))
+                  .catch(err => console.log('Failed to cache icon:', iconUrl, err))
+              )
+            );
+          });
       })
       .then(() => self.skipWaiting())
   );
@@ -33,6 +52,18 @@ self.addEventListener('activate', event => {
 
 // Fetch from cache, fallback to network
 self.addEventListener('fetch', event => {
+  // Skip cross-origin requests (like external icons on first load)
+  if (event.request.url.startsWith('http') && !event.request.url.startsWith(self.location.origin)) {
+    // For online icons, try cache first, then network
+    if (onlineIcons.includes(event.request.url)) {
+      event.respondWith(
+        caches.match(event.request)
+          .then(response => response || fetch(event.request))
+      );
+    }
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -67,8 +98,8 @@ self.addEventListener('push', event => {
   const title = data.title || 'Code Manager';
   const options = {
     body: data.body || 'Notification from Code Manager',
-    icon: 'icons/icon-192x192.png',
-    badge: 'icons/icon-72x72.png',
+    icon: 'https://img.icons8.com/color/192/000000/wifi-logo.png',
+    badge: 'https://img.icons8.com/color/96/000000/wifi-logo.png',
     vibrate: [100, 50, 100],
     data: {
       url: data.url || './'
