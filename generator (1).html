@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Code Manager</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding-bottom: 90px; /* Space for nav */
+            position: relative;
+            min-height: 100vh;
+        }
+        .tab-button {
+            transition: all 0.2s ease;
+        }
+        .tab-button.active {
+            color: #10B981;
+            border-bottom: 2px solid #10B981;
+        }
+        /* FAB Animation */
+        .fab-menu {
+            transform: scale(0);
+            transform-origin: bottom right;
+            transition: transform 0.2s ease-out;
+        }
+        .fab-menu.open {
+            transform: scale(1);
+        }
+        /* Modal Transitions */
+        .modal {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .modal.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container bg-gray-50 flex flex-col">
+        
+        <!-- Header & Data Controls -->
+        <header class="bg-white p-4 shadow-sm sticky top-0 z-20">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-xl font-bold flex items-center text-gray-800">
+                    <i data-lucide="wifi" class="w-6 h-6 mr-2 text-emerald-500"></i>
+                    <span id="header-title">Code Manager</span>
+                </h1>
+                <div class="flex space-x-2">
+                    <button onclick="app.exportData()" class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50" title="Export Data">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                    </button>
+                    <label class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50 cursor-pointer" title="Import Data">
+                        <i data-lucide="upload" class="w-5 h-5"></i>
+                        <input type="file" id="import-file" class="hidden" accept=".json" onchange="app.importData(this)">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Top Tabs: Unused vs Used -->
+            <div class="flex border-b border-gray-200">
+                <button onclick="app.setView('unused')" id="view-unused" class="flex-1 pb-3 text-center font-semibold text-gray-500 border-b-2 border-transparent hover:text-emerald-500 active tab-button">
+                    Unused (<span id="count-unused">0</span>)
+                </button>
+                <button onclick="app.setView('used')" id="view-used" class="flex-1 pb-3 text-center font-semibold text-gray-500 border-b-2 border-transparent hover:text-red-500 tab-button">
+                    Used (<span id="count-used">0</span>)
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content List -->
+        <main id="code-list" class="flex-1 p-4 space-y-3 overflow-y-auto">
+            <!-- Items injected here -->
+            <div class="text-center py-10 text-gray-400">
+                <p>No codes found.</p>
+            </div>
+        </main>
+
+        <!-- Floating Action Button (FAB) -->
+        <div class="fixed bottom-24 right-4 z-30 flex flex-col items-end">
+            <!-- FAB Menu Options -->
+            <div id="fab-menu" class="fab-menu flex flex-col space-y-3 mb-4 mr-1">
+                <button onclick="app.openModal('manual')" class="flex items-center bg-white text-gray-700 px-4 py-2 rounded-full shadow-lg border hover:bg-gray-50">
+                    <span class="mr-2 font-medium">Add Manually</span>
+                    <i data-lucide="edit-3" class="w-4 h-4 text-blue-500"></i>
+                </button>
+                <button onclick="app.openModal('auto')" class="flex items-center bg-white text-gray-700 px-4 py-2 rounded-full shadow-lg border hover:bg-gray-50">
+                    <span class="mr-2 font-medium">Auto Generate</span>
+                    <i data-lucide="wand-2" class="w-4 h-4 text-purple-500"></i>
+                </button>
+            </div>
+            
+            <!-- Main FAB Trigger -->
+            <button onclick="app.toggleFab(event)" class="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 text-4xl pb-1 leading-none">
+                +
+            </button>
+        </div>
+
+        <!-- Bottom Navigation (Plans) -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+            <div class="flex justify-around p-2">
+                <button onclick="app.setPlan('day1')" id="nav-day1" class="flex-1 p-2 flex flex-col items-center text-gray-500 hover:text-emerald-500 transition-colors">
+                    <i data-lucide="sun" class="w-5 h-5 mb-1"></i>
+                    <span class="text-xs font-medium">1 Day</span>
+                </button>
+                <button onclick="app.setPlan('month1')" id="nav-month1" class="flex-1 p-2 flex flex-col items-center text-gray-500 hover:text-emerald-500 transition-colors">
+                    <i data-lucide="calendar" class="w-5 h-5 mb-1"></i>
+                    <span class="text-xs font-medium">30 Days</span>
+                </button>
+                <button onclick="app.setPlan('family')" id="nav-family" class="flex-1 p-2 flex flex-col items-center text-gray-500 hover:text-emerald-500 transition-colors">
+                    <i data-lucide="users" class="w-5 h-5 mb-1"></i>
+                    <span class="text-xs font-medium">Family</span>
+                </button>
+            </div>
+        </nav>
+
+    </div>
+
+    <!-- MODAL: Auto Generate -->
+    <div id="modal-auto" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs p-6">
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+                <i data-lucide="wand-2" class="w-5 h-5 mr-2 text-purple-500"></i>
+                Auto Generate
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">How many codes to generate for <span id="auto-plan-name" class="font-bold"></span>?</p>
+            <input type="number" id="auto-count" value="10" min="1" max="50" class="w-full border p-2 rounded mb-1 focus:ring-2 focus:ring-emerald-500 outline-none">
+            <p class="text-xs text-gray-400 mb-6">Max 50 at a time.</p>
+            <div class="flex justify-end space-x-2">
+                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="app.generateAuto()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Manual Add -->
+    <div id="modal-manual" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+                <i data-lucide="edit-3" class="w-5 h-5 mr-2 text-blue-500"></i>
+                Add Manually
+            </h3>
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">User ID (5 Letters)</label>
+                    <input type="text" id="manual-user" maxlength="5" class="w-full border p-2 rounded uppercase focus:ring-2 focus:ring-blue-500 outline-none" placeholder="ABCDE">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Activation Code (4 Digits)</label>
+                    <input type="text" id="manual-code" maxlength="4" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="1234">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="app.addManual()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg text-sm transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none z-50">
+        Action Completed
+    </div>
+
+    <script>
+        // --- APP LOGIC ---
+        class App {
+            constructor() {
+                this.state = {
+                    currentPlan: 'day1',
+                    currentView: 'unused', // 'unused' or 'used'
+                    codes: []
+                };
+                this.plans = {
+                    day1: "1 Day Unlimited",
+                    month1: "30 Days Unlimited",
+                    family: "30 Days Family"
+                };
+                
+                this.init();
+            }
+
+            init() {
+                this.loadData();
+                this.render();
+                // Ensure icons are created after the initial render
+                lucide.createIcons();
+            }
+
+            // --- DATA MANAGEMENT (LocalStorage) ---
+
+            loadData() {
+                const stored = localStorage.getItem('captive_portal_data');
+                if (stored) {
+                    try {
+                        this.state.codes = JSON.parse(stored);
+                    } catch (e) {
+                        console.error("Corrupt data found", e);
+                        this.state.codes = [];
+                    }
+                }
+            }
+
+            saveData() {
+                localStorage.setItem('captive_portal_data', JSON.stringify(this.state.codes));
+                this.render();
+            }
+
+            exportData() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.codes, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "captive_portal_backup_" + new Date().toISOString().slice(0,10) + ".json");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                this.showToast("Data Exported");
+            }
+
+            importData(input) {
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (Array.isArray(imported)) {
+                            if(confirm("This will overwrite current data with the imported file. Continue?")) {
+                                this.state.codes = imported;
+                                this.saveData();
+                                this.showToast("Data Imported Successfully");
+                            }
+                        } else {
+                            // Using alert for simplicity, consider a modal in a real app
+                            alert("Invalid file format.");
+                        }
+                    } catch (err) {
+                        alert("Error parsing JSON");
+                    }
+                };
+                reader.readAsText(file);
+                input.value = ''; // Reset input
+            }
+
+            // --- GENERATORS ---
+
+            generateID() {
+                // 5 characters, All Caps, Letters Only
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                let result = '';
+                for (let i = 0; i < 5; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            }
+
+            generateCode() {
+                // 4 characters, All Numerical
+                return Math.floor(1000 + Math.random() * 9000).toString();
+            }
+
+            // --- ACTIONS ---
+
+            generateAuto() {
+                const countInput = document.getElementById('auto-count');
+                let count = parseInt(countInput.value) || 1;
+                if (count > 50) count = 50; // Safe max
+
+                for (let i = 0; i < count; i++) {
+                    const newEntry = {
+                        id: crypto.randomUUID(),
+                        username: this.generateID(),
+                        code: this.generateCode(),
+                        plan: this.state.currentPlan,
+                        status: 'unused',
+                        createdAt: new Date().toISOString()
+                    };
+                    this.state.codes.push(newEntry);
+                }
+
+                this.saveData();
+                this.closeModals();
+                this.showToast(`Generated ${count} codes`);
+            }
+
+            addManual() {
+                const userRaw = document.getElementById('manual-user').value.toUpperCase().trim();
+                const codeRaw = document.getElementById('manual-code').value.trim();
+
+                if (!userRaw || !codeRaw) {
+                    // Using alert for simplicity, consider a modal in a real app
+                    alert("Please fill all fields");
+                    return;
+                }
+
+                const newEntry = {
+                    id: crypto.randomUUID(),
+                    username: userRaw,
+                    code: codeRaw,
+                    plan: this.state.currentPlan,
+                    status: 'unused',
+                    createdAt: new Date().toISOString()
+                };
+
+                this.state.codes.push(newEntry);
+                this.saveData();
+                this.closeModals();
+                this.showToast("Manual Code Added");
+                
+                // Reset fields
+                document.getElementById('manual-user').value = '';
+                document.getElementById('manual-code').value = '';
+            }
+
+            markUsed(id) {
+                const idx = this.state.codes.findIndex(c => c.id === id);
+                if (idx > -1) {
+                    this.state.codes[idx].status = 'used';
+                    this.state.codes[idx].usedAt = new Date().toISOString(); // Saves exact timestamp
+                    this.saveData();
+                    this.showToast("Marked as Used");
+                }
+            }
+
+            deleteCode(id) {
+                if(confirm("Delete this code permanently?")) {
+                    this.state.codes = this.state.codes.filter(c => c.id !== id);
+                    this.saveData();
+                    this.showToast("Code Deleted");
+                }
+            }
+
+            // --- UI RENDERERS ---
+
+            setPlan(planId) {
+                this.state.currentPlan = planId;
+                this.render();
+            }
+
+            setView(viewType) {
+                this.state.currentView = viewType;
+                this.render();
+            }
+
+            toggleFab(e) {
+                if (e) e.stopPropagation();
+                const menu = document.getElementById('fab-menu');
+                menu.classList.toggle('open');
+            }
+
+            openModal(type) {
+                document.getElementById('fab-menu').classList.remove('open'); // Close fab
+                if (type === 'auto') {
+                    document.getElementById('auto-plan-name').textContent = this.plans[this.state.currentPlan];
+                    document.getElementById('modal-auto').classList.add('open');
+                } else {
+                    document.getElementById('modal-manual').classList.add('open');
+                }
+            }
+
+            closeModals() {
+                document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
+            }
+
+            showToast(msg) {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.classList.remove('opacity-0', 'translate-y-[-20px]');
+                setTimeout(() => {
+                    t.classList.add('opacity-0', 'translate-y-[-20px]');
+                }, 2000);
+            }
+
+            render() {
+                // 1. Update Navigation State
+                document.querySelectorAll('nav button').forEach(btn => {
+                    if (btn.id === `nav-${this.state.currentPlan}`) {
+                        btn.classList.add('text-emerald-500');
+                        btn.classList.remove('text-gray-500');
+                    } else {
+                        btn.classList.add('text-gray-500');
+                        btn.classList.remove('text-emerald-500');
+                    }
+                });
+
+                // 2. Update Top Tabs State
+                const unusedBtn = document.getElementById('view-unused');
+                const usedBtn = document.getElementById('view-used');
+                if (this.state.currentView === 'unused') {
+                    unusedBtn.classList.add('active', 'text-emerald-500', 'border-emerald-500');
+                    usedBtn.classList.remove('active', 'text-red-500', 'border-red-500');
+                } else {
+                    usedBtn.classList.add('active', 'text-red-500', 'border-red-500');
+                    unusedBtn.classList.remove('active', 'text-emerald-500', 'border-emerald-500');
+                }
+
+                // 3. Filter Data
+                const planCodes = this.state.codes.filter(c => c.plan === this.state.currentPlan);
+                const unusedCodes = planCodes.filter(c => c.status === 'unused');
+                const usedCodes = planCodes.filter(c => c.status === 'used');
+
+                // Update Counts
+                document.getElementById('count-unused').textContent = unusedCodes.length;
+                document.getElementById('count-used').textContent = usedCodes.length;
+
+                // 4. Render List
+                const listEl = document.getElementById('code-list');
+                const codesToShow = this.state.currentView === 'unused' ? unusedCodes : usedCodes;
+
+                if (codesToShow.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i data-lucide="${this.state.currentView === 'unused' ? 'inbox' : 'history'}" class="w-12 h-12 mb-2 opacity-50"></i>
+                            <p>No ${this.state.currentView} codes for ${this.plans[this.state.currentPlan]}</p>
+                        </div>
+                    `;
+                } else {
+                    listEl.innerHTML = codesToShow.map(code => {
+                        const isUsed = code.status === 'used';
+                        const actionBtn = isUsed 
+                            ? `<button onclick="app.deleteCode('${code.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-full"><i data-lucide="trash-2" class="w-5 h-5"></i></button>`
+                            : `<button onclick="app.markUsed('${code.id}')" class="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-lg hover:bg-emerald-200">Mark Used</button>`;
+                        
+                        return `
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center animate-fade-in">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-mono text-lg font-bold text-gray-800 tracking-wide select-all">${code.username}</span>
+                                    <span class="text-gray-300">|</span>
+                                    <span class="font-mono text-lg text-gray-600 select-all">${code.code}</span>
+                                </div>
+                                <div class="text-xs text-gray-400 mt-1">
+                                    <!-- CRUCIAL CHANGE: Use toLocaleString() for date AND time for used codes -->
+                                    ${isUsed 
+                                        ? 'Used: ' + new Date(code.usedAt).toLocaleString() 
+                                        : 'Created: ' + new Date(code.createdAt).toLocaleDateString()}
+                                </div>
+                            </div>
+                            <div class="pl-4">
+                                ${actionBtn}
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+                
+                // Re-init icons for new DOM elements
+                lucide.createIcons();
+            }
+        }
+
+        // Initialize App Globally
+        window.app = new App();
+
+        // Close FAB when clicking outside
+        document.addEventListener('click', (e) => {
+            const fabContainer = document.querySelector('.fixed.bottom-24');
+            if (fabContainer && !fabContainer.contains(e.target)) {
+                document.getElementById('fab-menu').classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>
