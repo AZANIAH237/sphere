@@ -4,31 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offline Code Manager</title>
-    <meta name="theme-color" content="#10B981">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    
+    <meta name="theme-color" content="#10B981">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
-        .container { max-width: 600px; margin: auto; padding-bottom: 90px; min-height: 100vh; }
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; min-height: 100vh; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        .container { max-width: 600px; margin: auto; padding-bottom: 90px; position: relative; min-height: 100vh; }
+        .tab-button { transition: all 0.2s ease; }
         .tab-button.active { color: #10B981; border-bottom: 2px solid #10B981; }
-        .modal { display: none; background: rgba(0,0,0,0.5); }
-        .modal.open { display: flex; }
-        /* Smooth fade for lists */
-        .fade-enter { opacity: 0; transform: translateY(10px); animation: fadeInUp 0.3s forwards; }
-        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        .fab-menu { transform: scale(0); transform-origin: bottom right; transition: transform 0.2s ease-out; }
+        .fab-menu.open { transform: scale(1); }
+        .modal { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal.open { opacity: 1; pointer-events: auto; }
     </style>
 </head>
 <body class="text-gray-800">
-
-    <div id="error-box" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 m-4 rounded relative" role="alert">
-        <strong class="font-bold">Error:</strong>
-        <span class="block sm:inline" id="error-msg"></span>
-    </div>
 
     <div class="container bg-gray-50 flex flex-col">
         
@@ -36,18 +30,18 @@
             <div class="flex justify-between items-center mb-4">
                 <h1 class="text-xl font-bold flex items-center text-gray-800">
                     <i data-lucide="wifi" class="w-6 h-6 mr-2 text-emerald-500"></i>
-                    <span>Code Manager</span>
+                    <span id="header-title">Code Manager</span>
                 </h1>
-                <div class="flex space-x-1">
-                    <button onclick="app.requestNotificationPermission()" class="p-2 text-gray-500 hover:text-yellow-600 rounded-full hover:bg-yellow-50">
+                <div class="flex space-x-2">
+                    <button onclick="app.requestNotify()" class="p-2 text-gray-500 hover:text-yellow-600 rounded-full hover:bg-yellow-50" title="Enable Alerts">
                         <i data-lucide="bell" class="w-5 h-5"></i>
                     </button>
-                    <button onclick="app.exportData()" class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50">
+                    <button onclick="app.exportData()" class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50" title="Export">
                         <i data-lucide="download" class="w-5 h-5"></i>
                     </button>
-                    <label class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50 cursor-pointer relative">
+                    <label class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-blue-50 cursor-pointer" title="Import">
                         <i data-lucide="upload" class="w-5 h-5"></i>
-                        <input type="file" id="import-file" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="*" onchange="app.importData(this)">
+                        <input type="file" id="import-file" class="hidden" accept=".json,application/json" onchange="app.importData(this)">
                     </label>
                 </div>
             </div>
@@ -62,26 +56,27 @@
             </div>
         </header>
 
-        <main id="code-list" class="flex-1 p-4 space-y-3 overflow-y-auto pb-24">
-            </main>
+        <main id="code-list" class="flex-1 p-4 space-y-3 overflow-y-auto">
+            <div class="text-center py-10 text-gray-400"><p>No codes found.</p></div>
+        </main>
 
         <div class="fixed bottom-24 right-4 z-30 flex flex-col items-end">
-            <div id="fab-menu" class="hidden flex-col space-y-3 mb-4 mr-1 transition-all">
-                <button onclick="app.openModal('manual')" class="flex items-center bg-white text-gray-700 px-4 py-2 rounded-full shadow-lg border">
+            <div id="fab-menu" class="fab-menu flex flex-col space-y-3 mb-4 mr-1">
+                <button onclick="app.openModal('manual')" class="flex items-center bg-white text-gray-700 px-4 py-2 rounded-full shadow-lg border hover:bg-gray-50">
                     <span class="mr-2 font-medium">Add Manually</span>
                     <i data-lucide="edit-3" class="w-4 h-4 text-blue-500"></i>
                 </button>
-                <button onclick="app.openModal('auto')" class="flex items-center bg-white text-gray-700 px-4 py-2 rounded-full shadow-lg border">
+                <button onclick="app.openModal('auto')" class="flex items-center bg-white text-gray-700 px-4 py-2 rounded-full shadow-lg border hover:bg-gray-50">
                     <span class="mr-2 font-medium">Auto Generate</span>
                     <i data-lucide="wand-2" class="w-4 h-4 text-purple-500"></i>
                 </button>
             </div>
-            <button onclick="app.toggleFab()" class="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center text-4xl pb-1 leading-none">
+            <button onclick="app.toggleFab(event)" class="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 text-4xl pb-1 leading-none">
                 +
             </button>
         </div>
 
-        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t z-20 container mx-auto">
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
             <div class="flex justify-around p-2">
                 <button onclick="app.setPlan('day1')" id="nav-day1" class="flex-1 p-2 flex flex-col items-center text-gray-500">
                     <i data-lucide="sun" class="w-5 h-5 mb-1"></i>
@@ -97,52 +92,53 @@
                 </button>
             </div>
         </nav>
+
     </div>
 
-    <div id="modal-auto" class="modal fixed inset-0 z-50 items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs p-6 animate-bounce-in">
-            <h3 class="text-lg font-bold mb-4">Auto Generate</h3>
-            <p class="text-sm text-gray-600 mb-2">Plan: <span id="auto-plan-name" class="font-bold"></span></p>
-            <input type="number" id="auto-count" value="10" class="w-full border p-2 rounded mb-6" placeholder="How many?">
-            <div class="flex justify-end space-x-2">
-                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500">Cancel</button>
-                <button onclick="app.generateAuto()" class="px-4 py-2 bg-emerald-600 text-white rounded">Generate</button>
+    <div id="modal-auto" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs p-6">
+            <h3 class="text-lg font-bold mb-4 flex items-center"><i data-lucide="wand-2" class="w-5 h-5 mr-2 text-purple-500"></i> Auto Generate</h3>
+            <p class="text-sm text-gray-600 mb-4">Generate for <span id="auto-plan-name" class="font-bold"></span>?</p>
+            <input type="number" id="auto-count" value="10" min="1" max="50" class="w-full border p-2 rounded mb-1 focus:ring-2 focus:ring-emerald-500 outline-none">
+            <div class="flex justify-end space-x-2 mt-4">
+                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="app.generateAuto()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Generate</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-manual" class="modal fixed inset-0 z-50 items-center justify-center p-4">
+    <div id="modal-manual" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
-            <h3 class="text-lg font-bold mb-4">Add Manually</h3>
+            <h3 class="text-lg font-bold mb-4 flex items-center"><i data-lucide="edit-3" class="w-5 h-5 mr-2 text-blue-500"></i> Add Manually</h3>
             <div class="space-y-4 mb-6">
-                <input type="text" id="manual-user" class="w-full border p-2 rounded uppercase" placeholder="User ID">
-                <input type="text" id="manual-code" class="w-full border p-2 rounded" placeholder="Code">
+                <input type="text" id="manual-user" maxlength="5" class="w-full border p-2 rounded uppercase" placeholder="User ID (5 Letters)">
+                <input type="text" id="manual-code" maxlength="4" class="w-full border p-2 rounded" placeholder="Code (4 Digits)">
             </div>
             <div class="flex justify-end space-x-2">
-                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500">Cancel</button>
-                <button onclick="app.addManual()" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="app.addManual()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-mark-used" class="modal fixed inset-0 z-50 items-center justify-center p-4">
+    <div id="modal-mark-used" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
             <h3 class="text-lg font-bold mb-2">Activate Code</h3>
-            <p class="text-sm text-gray-500 mb-4">Enter client name:</p>
-            <input type="text" id="used-shortname" class="w-full border p-2 rounded mb-6 focus:ring-2 focus:ring-emerald-500" placeholder="e.g. John Doe">
+            <p class="text-sm text-gray-500 mb-4">Who is this code for?</p>
+            <input type="text" id="used-shortname" class="w-full border p-2 rounded mb-6 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Client Name (e.g., John)">
             <input type="hidden" id="pending-mark-id">
             <div class="flex justify-end space-x-2">
-                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500">Cancel</button>
-                <button onclick="app.confirmMarkUsed()" class="px-4 py-2 bg-emerald-600 text-white rounded">Activate</button>
+                <button onclick="app.closeModals()" class="px-4 py-2 text-gray-500 rounded hover:bg-gray-100">Cancel</button>
+                <button onclick="app.confirmMarkUsed()" class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">Activate</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-details" class="modal fixed inset-0 z-50 items-center justify-center p-4">
+    <div id="modal-details" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 relative">
-            <button onclick="app.closeModals()" class="absolute top-4 right-4 text-gray-400 font-bold text-xl">&times;</button>
-            <h3 class="text-xl font-bold mb-1 text-gray-800" id="detail-shortname">Client</h3>
-            <p class="text-sm text-emerald-600 font-semibold mb-6 uppercase" id="detail-plan">Plan</p>
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h3 class="text-xl font-bold mb-1 text-gray-800" id="detail-shortname">Client Name</h3>
+            <p class="text-sm text-emerald-600 font-semibold mb-6 uppercase" id="detail-plan">Plan Name</p>
             
             <div class="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <div class="flex justify-between border-b pb-2">
@@ -165,47 +161,30 @@
         </div>
     </div>
 
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg text-sm transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none z-50">Action Completed</div>
+
     <script>
-        // --- SAFE MODE SCRIPT ---
-        
-        // Simple UUID generator if crypto fails
-        function uuidv4() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW Registered'))
+                .catch(err => console.log('SW Fail', err));
         }
 
         class App {
             constructor() {
                 this.state = { currentPlan: 'day1', currentView: 'unused', codes: [] };
                 this.plans = { day1: "1 Day Unlimited", month1: "30 Days Unlimited", family: "30 Days Family" };
+                // Duration in hours
                 this.durations = { day1: 24, month1: 720, family: 720 }; 
-                
-                try {
-                    this.init();
-                } catch (e) {
-                    this.showError("Init Failed: " + e.message);
-                }
-            }
-
-            showError(msg) {
-                document.getElementById('error-box').classList.remove('hidden');
-                document.getElementById('error-msg').textContent = msg;
-                console.error(msg);
+                this.init();
             }
 
             init() {
                 this.loadData();
                 this.render();
-                if(window.lucide) lucide.createIcons();
-                
-                // Register Service Worker if valid
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('sw.js').catch(e => console.log('SW Fail:', e));
-                }
-
-                // Check expiry loop
+                lucide.createIcons();
+                // Check expiry every minute
                 setInterval(() => this.checkExpiry(), 60000);
             }
 
@@ -214,26 +193,21 @@
                 if (stored) {
                     try {
                         let data = JSON.parse(stored);
-                        // --- DATA MIGRATION / REPAIR ---
-                        // This fixes the "Broken" issue by ensuring all old codes have the new required fields
-                        let repaired = false;
-                        if (Array.isArray(data)) {
-                            this.state.codes = data.map(c => {
-                                // 1. Fix missing Plan
-                                if (!c.plan) { c.plan = 'day1'; repaired = true; }
-                                // 2. Fix missing ID
-                                if (!c.id) { c.id = uuidv4(); repaired = true; }
-                                // 3. Fix missing Status
-                                if (!c.status) { c.status = 'unused'; repaired = true; }
-                                return c;
-                            });
-                        }
-                        if (repaired) {
-                            console.log("Repaired old data format");
-                            this.saveData();
-                        }
+                        // *** CRITICAL FIX: Data Migration ***
+                        // This ensures old codes from the previous version don't break the app
+                        this.state.codes = data.map(c => ({
+                            ...c,
+                            // If plan is missing, default to day1
+                            plan: c.plan || 'day1',
+                            // If ID is missing, create one
+                            id: c.id || crypto.randomUUID(),
+                            // If status missing, default unused
+                            status: c.status || 'unused',
+                            // If created date missing
+                            createdAt: c.createdAt || new Date().toISOString()
+                        }));
                     } catch (e) {
-                        this.showError("Data Corrupt. Resetting.");
+                        console.error("Data error", e);
                         this.state.codes = [];
                     }
                 }
@@ -245,10 +219,10 @@
             }
 
             // --- NOTIFICATIONS ---
-            requestNotificationPermission() {
-                if (!("Notification" in window)) return alert("Not supported on this device");
+            requestNotify() {
+                if (!("Notification" in window)) return alert("Not supported");
                 Notification.requestPermission().then(p => {
-                    if (p === "granted") new Notification("Notifications Active");
+                    if (p === "granted") this.showToast("Notifications Enabled");
                 });
             }
 
@@ -258,24 +232,28 @@
                 this.state.codes.forEach(c => {
                     if (c.status === 'used' && c.expiresAt && !c.notified) {
                         const expiry = new Date(c.expiresAt);
-                        if (now >= expiry) {
-                            new Notification("Code Expired", { body: `${c.shortName} (${c.username}) expired.` });
-                            c.notified = true;
+                        // Trigger if expired within last 2 minutes (to avoid spamming old ones)
+                        if (now >= expiry && (now - expiry) < 120000) {
+                            new Notification("Plan Expired", {
+                                body: `${c.shortName || 'Client'} (${c.username}) - Time is up!`
+                            });
+                            c.notified = true; // Don't notify again
                             this.saveData();
                         }
                     }
                 });
             }
 
-            // --- IMPORT / EXPORT ---
+            // --- IMPORT/EXPORT ---
             exportData() {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.codes));
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.codes, null, 2));
                 const link = document.createElement('a');
                 link.href = dataStr;
-                link.download = `codes_backup_${Date.now()}.json`;
+                link.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
+                this.showToast("Exported");
             }
 
             importData(input) {
@@ -286,30 +264,26 @@
                     try {
                         const imported = JSON.parse(e.target.result);
                         if (Array.isArray(imported)) {
-                            if(confirm(`Found ${imported.length} codes. Overwrite existing data?`)) {
+                            if(confirm("Overwrite current data with this file?")) {
                                 this.state.codes = imported;
-                                // Run repair on import too
-                                this.state.codes.forEach(c => {
-                                    if(!c.plan) c.plan = 'day1';
-                                    if(!c.id) c.id = uuidv4();
-                                    if(!c.status) c.status = 'unused';
-                                });
+                                // Run migration on imported data too
+                                this.loadData(); // Re-runs the migration map
                                 this.saveData();
-                                alert("Import Successful!");
+                                this.showToast("Imported Successfully");
                             }
-                        } else { alert("Invalid JSON"); }
-                    } catch (err) { alert("Error reading file: " + err); }
+                        } else { alert("Invalid file."); }
+                    } catch (err) { alert("Error parsing JSON"); }
                 };
                 reader.readAsText(file);
-                input.value = ''; // Reset input
+                input.value = '';
             }
 
             // --- LOGIC ---
             generateAuto() {
-                const count = parseInt(document.getElementById('auto-count').value) || 1;
-                for(let i=0; i<count; i++) {
+                const count = Math.min(parseInt(document.getElementById('auto-count').value) || 1, 50);
+                for (let i = 0; i < count; i++) {
                     this.state.codes.push({
-                        id: uuidv4(),
+                        id: crypto.randomUUID(),
                         username: this.generateStr(5),
                         code: Math.floor(1000 + Math.random() * 9000).toString(),
                         plan: this.state.currentPlan,
@@ -319,11 +293,12 @@
                 }
                 this.saveData();
                 this.closeModals();
+                this.showToast(`Generated ${count}`);
             }
 
             generateStr(len) {
-                let res = '';
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                let res = '';
                 for(let i=0; i<len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
                 return res;
             }
@@ -331,41 +306,56 @@
             addManual() {
                 const u = document.getElementById('manual-user').value.toUpperCase().trim();
                 const c = document.getElementById('manual-code').value.trim();
-                if(u && c) {
-                    this.state.codes.push({
-                        id: uuidv4(),
-                        username: u, code: c,
-                        plan: this.state.currentPlan,
-                        status: 'unused',
-                        createdAt: new Date().toISOString()
-                    });
-                    this.saveData();
-                    this.closeModals();
-                }
+                if (!u || !c) return alert("Fill all fields");
+                this.state.codes.push({
+                    id: crypto.randomUUID(),
+                    username: u, code: c,
+                    plan: this.state.currentPlan,
+                    status: 'unused',
+                    createdAt: new Date().toISOString()
+                });
+                this.saveData();
+                this.closeModals();
+                this.showToast("Added");
+                document.getElementById('manual-user').value='';
+                document.getElementById('manual-code').value='';
             }
 
+            // --- NEW MARK USED LOGIC ---
             promptMarkUsed(id) {
                 document.getElementById('pending-mark-id').value = id;
-                document.getElementById('used-shortname').value = '';
+                document.getElementById('used-shortname').value = ''; // Reset input
                 this.openModal('mark-used');
             }
 
             confirmMarkUsed() {
                 const id = document.getElementById('pending-mark-id').value;
-                const name = document.getElementById('used-shortname').value.trim() || 'Client';
+                const shortName = document.getElementById('used-shortname').value.trim() || 'Client';
                 const idx = this.state.codes.findIndex(c => c.id === id);
+
                 if (idx > -1) {
                     const now = new Date();
                     const hours = this.durations[this.state.codes[idx].plan] || 24;
-                    const exp = new Date(now.getTime() + (hours * 60 * 60 * 1000));
-                    
+                    const expiry = new Date(now.getTime() + (hours * 60 * 60 * 1000));
+
                     this.state.codes[idx].status = 'used';
-                    this.state.codes[idx].shortName = name;
+                    this.state.codes[idx].shortName = shortName;
                     this.state.codes[idx].usedAt = now.toISOString();
-                    this.state.codes[idx].expiresAt = exp.toISOString();
+                    this.state.codes[idx].expiresAt = expiry.toISOString();
                     this.state.codes[idx].notified = false;
+
                     this.saveData();
                     this.closeModals();
+                    this.showToast("Activated");
+                }
+            }
+
+            deleteCode(id, e) {
+                if(e) e.stopPropagation();
+                if(confirm("Delete permanently?")) {
+                    this.state.codes = this.state.codes.filter(c => c.id !== id);
+                    this.saveData();
+                    this.showToast("Deleted");
                 }
             }
 
@@ -381,95 +371,104 @@
                 this.openModal('details');
             }
 
-            deleteCode(id, e) {
-                e.stopPropagation();
-                if(confirm("Delete this code?")) {
-                    this.state.codes = this.state.codes.filter(c => c.id !== id);
-                    this.saveData();
-                }
-            }
-
-            // --- UI ---
-            toggleFab() { 
-                const fab = document.getElementById('fab-menu');
-                fab.classList.toggle('hidden');
-                fab.classList.toggle('flex');
-            }
-            openModal(id) { 
-                this.closeModals();
-                if(id==='auto') document.getElementById('auto-plan-name').textContent = this.plans[this.state.currentPlan];
-                document.getElementById('modal-'+id).classList.add('open'); 
-            }
-            closeModals() { 
-                document.querySelectorAll('.modal').forEach(m => m.classList.remove('open')); 
-                document.getElementById('fab-menu').classList.add('hidden');
-                document.getElementById('fab-menu').classList.remove('flex');
-            }
+            // --- UI HELPERS ---
             setPlan(p) { this.state.currentPlan = p; this.render(); }
             setView(v) { this.state.currentView = v; this.render(); }
+            
+            toggleFab(e) { 
+                if(e) e.stopPropagation(); 
+                document.getElementById('fab-menu').classList.toggle('open'); 
+            }
+            
+            openModal(t) {
+                this.closeModals();
+                if(t === 'auto') document.getElementById('auto-plan-name').textContent = this.plans[this.state.currentPlan];
+                document.getElementById('modal-'+t).classList.add('open');
+            }
+            
+            closeModals() { 
+                document.querySelectorAll('.modal').forEach(m => m.classList.remove('open')); 
+                document.getElementById('fab-menu').classList.remove('open');
+            }
+            
+            showToast(msg) {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.classList.remove('opacity-0', 'translate-y-[-20px]');
+                setTimeout(() => t.classList.add('opacity-0', 'translate-y-[-20px]'), 2000);
+            }
 
             render() {
-                try {
-                    // Update Nav
-                    ['day1','month1','family'].forEach(p => {
-                        const btn = document.getElementById('nav-'+p);
-                        btn.className = `flex-1 p-2 flex flex-col items-center ${this.state.currentPlan === p ? 'text-emerald-500' : 'text-gray-500'}`;
-                    });
-
-                    // Update Tabs
-                    const uBtn = document.getElementById('view-unused');
-                    const usedBtn = document.getElementById('view-used');
-                    if(this.state.currentView === 'unused') {
-                        uBtn.classList.add('active'); usedBtn.classList.remove('active');
+                // Nav Styles
+                ['day1','month1','family'].forEach(p => {
+                    const btn = document.getElementById('nav-'+p);
+                    if(this.state.currentPlan === p) {
+                        btn.classList.add('text-emerald-500'); btn.classList.remove('text-gray-500');
                     } else {
-                        usedBtn.classList.add('active'); uBtn.classList.remove('active');
+                        btn.classList.add('text-gray-500'); btn.classList.remove('text-emerald-500');
                     }
+                });
 
-                    // Filter Data
-                    // SAFE FILTER: handles missing 'plan' by treating undefined as 'day1'
-                    const filtered = this.state.codes.filter(c => (c.plan || 'day1') === this.state.currentPlan);
-                    const unused = filtered.filter(c => (c.status || 'unused') === 'unused');
-                    const used = filtered.filter(c => c.status === 'used');
+                // Tab Styles
+                const vUnused = document.getElementById('view-unused');
+                const vUsed = document.getElementById('view-used');
+                if (this.state.currentView === 'unused') {
+                    vUnused.classList.add('active', 'border-emerald-500'); vUnused.classList.remove('border-transparent');
+                    vUsed.classList.remove('active', 'border-emerald-500'); vUsed.classList.add('border-transparent');
+                } else {
+                    vUsed.classList.add('active', 'border-emerald-500'); vUsed.classList.remove('border-transparent');
+                    vUnused.classList.remove('active', 'border-emerald-500'); vUnused.classList.add('border-transparent');
+                }
 
-                    document.getElementById('count-unused').textContent = unused.length;
-                    document.getElementById('count-used').textContent = used.length;
+                // Filter
+                const filtered = this.state.codes.filter(c => c.plan === this.state.currentPlan);
+                const unused = filtered.filter(c => c.status === 'unused');
+                const used = filtered.filter(c => c.status === 'used');
 
-                    const list = document.getElementById('code-list');
-                    const data = this.state.currentView === 'unused' ? unused : used;
+                document.getElementById('count-unused').textContent = unused.length;
+                document.getElementById('count-used').textContent = used.length;
 
-                    if(data.length === 0) {
-                        list.innerHTML = `<div class="text-center text-gray-400 mt-20">No codes found for this plan.</div>`;
-                    } else {
-                        list.innerHTML = data.map(c => `
-                            <div class="fade-enter bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center ${c.status==='used'?'cursor-pointer hover:bg-gray-50':''}" 
-                                 onclick="${c.status==='used' ? `app.showDetails('${c.id}')` : ''}">
-                                <div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="font-bold text-gray-800">${c.username}</span>
-                                        ${c.shortName ? `<span class="text-xs bg-gray-200 px-2 rounded-full">${c.shortName}</span>` : ''}
-                                    </div>
-                                    <div class="text-xs text-gray-400 mt-1">
-                                        ${c.status === 'used' ? 'Exp: ' + new Date(c.expiresAt).toLocaleString() : c.code}
-                                    </div>
+                const list = document.getElementById('code-list');
+                const data = this.state.currentView === 'unused' ? unused : used;
+
+                if (data.length === 0) {
+                    list.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-gray-400"><i data-lucide="inbox" class="w-12 h-12 mb-2 opacity-50"></i><p>No codes found</p></div>`;
+                } else {
+                    list.innerHTML = data.map(c => {
+                        const isUsed = c.status === 'used';
+                        // Clicking used item opens details
+                        const clickAction = isUsed ? `app.showDetails('${c.id}')` : '';
+                        
+                        return `
+                        <div onclick="${clickAction}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center ${isUsed?'cursor-pointer hover:bg-gray-50':''}">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-mono text-lg font-bold text-gray-800">${c.username}</span>
+                                    ${c.shortName ? `<span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">${c.shortName}</span>` : ''}
                                 </div>
-                                <div class="pl-4">
-                                    ${c.status === 'used' 
-                                        ? `<button onclick="app.deleteCode('${c.id}', event)" class="text-red-400 p-2"><i data-lucide="trash-2" class="w-5 h-5"></i></button>`
-                                        : `<button onclick="app.promptMarkUsed('${c.id}')" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded text-sm font-bold">Mark Used</button>`
-                                    }
+                                <div class="text-xs text-gray-400 mt-1">
+                                    ${isUsed ? 'Expires: ' + new Date(c.expiresAt).toLocaleString() : c.code}
                                 </div>
                             </div>
-                        `).join('');
-                    }
-
-                    if(window.lucide) lucide.createIcons();
-                } catch (e) {
-                    this.showError("Render Error: " + e.message);
+                            <div class="pl-4">
+                                ${isUsed 
+                                    ? `<button onclick="app.deleteCode('${c.id}', event)" class="p-2 text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-5 h-5"></i></button>`
+                                    : `<button onclick="app.promptMarkUsed('${c.id}')" class="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-lg">Mark Used</button>`
+                                }
+                            </div>
+                        </div>`;
+                    }).join('');
                 }
+                lucide.createIcons();
             }
         }
-        
         window.app = new App();
+        
+        // Close FAB on outside click
+        document.addEventListener('click', (e) => {
+            const fab = document.querySelector('.fixed.bottom-24');
+            if (fab && !fab.contains(e.target)) document.getElementById('fab-menu').classList.remove('open');
+        });
     </script>
 </body>
 </html>
